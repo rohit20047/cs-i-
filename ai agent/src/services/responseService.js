@@ -23,16 +23,17 @@ const responseService = {
                 content: `You are a professional customer support AI assisting users with their queries. Always greet the user politely and provide clear, helpful responses based on the provided context and previous conversation.  
                 If a user starts with a greeting (e.g., 'Hi', 'Hello'), respond professionally, such as 'Hi, how can I assist you today?'.  
                 Do **not** respond to queries that are unrelated to the support context. If a user asks something irrelevant (e.g., general trivia, unrelated topics like 'What is FIFA?' or 'How to play a game?'), **politely ignore the query** and do not generate any response.  
-                Ensure that your responses are direct, professional, and helpful, Your response must follow the exact JSON structure specified.`
+                Ensure that your responses are direct, professional, and helpful. Your response must follow the exact JSON structure specified. If you don't know the answer, say something like 'Please contact technical support for assistance.'`
             };
-
+    
             const userPrompt = {
                 role: "user",
                 content: `Document Context: ${context}\n\nConversation Context: ${conversationContext}\n\nQuestion: ${query}\n\nProvide your response in this EXACT JSON structure (no additional text or formatting):\n{"type":"TECHNICAL","priority":"HIGH","responseTime":"Immediate","answer":"your answer here","confidence":0.95,"sourcesUsed":1}`
             };
-
+    
             const response = await model.invoke([systemPrompt, userPrompt]);
             let parsedResponse;
+    
             try {
                 parsedResponse = JSON.parse(response.content);
             } catch (parseError) {
@@ -44,12 +45,41 @@ const responseService = {
                     .trim();
                 parsedResponse = JSON.parse(cleaned);
             }
-
+    
             if (!parsedResponse.answer) throw new Error("Response missing required fields");
-
+    
+            // Second AI check: Does the response tell the user to contact support?
+            const validationPrompt = {
+                role: "system",
+                content: `You are analyzing a response from an AI support assistant.  
+                Your task is to determine whether the response is **advising the user to contact technical/billing support**.  
+                Respond with ONLY **"YES"** or **"NO"**. No additional text.`  
+            };
+    
+            const validationUserPrompt = {
+                role: "user",
+                content: `Response: "${parsedResponse.answer}"\n\nDoes this message tell the user to contact technical support?`
+            };
+    
+            const validationResponse = await model.invoke([validationPrompt, validationUserPrompt]);
+            const validationResult = validationResponse.content.trim().toUpperCase();
+    
+            if (validationResult === "YES") {
+                return {
+                    type: "TECHNICAL",
+                    priority: "HIGH",
+                    techSupport: true,
+                    responseTime: "Immediate",
+                    answer: parsedResponse.answer,
+                    confidence: 1.0,
+                    sourcesUsed: 0
+                };
+            }
+    
             return {
                 type: "TECHNICAL",
                 priority: "HIGH",
+                techSupport: false,
                 responseTime: "Immediate",
                 answer: parsedResponse.answer,
                 confidence: typeof parsedResponse.confidence === 'number' ? parsedResponse.confidence : 0.95,
@@ -60,6 +90,7 @@ const responseService = {
             return this.presentTechnicalAnswerNoDocs(query, context, conversationContext);
         }
     },
+    
 
     async presentTechnicalAnswerNoDocs(query, context, conversationContext = "") {
         query = query || "";
@@ -113,6 +144,7 @@ const responseService = {
             return {
                 type: "TECHNICAL_WITHOUT_DOCS",
                 priority: "HIGH - No Documentation",
+                techSupport: true,
                 responseTime: "Immediate",
                 answer: parsedResponse.answer,
                 confidence: typeof parsedResponse.confidence === 'number' ? parsedResponse.confidence : 0.95,

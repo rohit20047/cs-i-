@@ -4,11 +4,6 @@ import man from "../assets/agent.png";
 import TechnicalSupportCard from "./TechnicalSupportCard";
 
 const MessageBubble = ({ message }) => {
-  // Check if this is a technical support message
-  const hasTechnicalSupport = message.sender === "ai" && 
-    message.supportInfo && 
-    message.supportInfo.contactOptions;
-
   return (
     <div className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}>
       {message.sender === "ai" && (
@@ -16,31 +11,39 @@ const MessageBubble = ({ message }) => {
           <img src={man} alt="AI Logo" className="h-full w-full object-cover" />
         </div>
       )}
-      <div
-        className={`${
-          message.sender === "user"
-            ? "max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-br-none shadow-lg border-2 border-blue-400/50"
-            : hasTechnicalSupport
-            ? "max-w-md" // Wider container for technical support card
-            : message.isError
-            ? "max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-red-100 text-red-800 rounded-bl-none border-2 border-red-300/70 shadow-md"
-            : "max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-transparent text-white rounded-bl-none shadow-md border-2 border-gray-200/80"
-        }`}
-      >
-        {hasTechnicalSupport ? (
-          <TechnicalSupportCard supportInfo={message.supportInfo} />
-        ) : (
+
+      <div className="flex flex-col">
+        {/* AI/User Message with Border */}
+        {message.text && (
           <div
             className={`${
               message.sender === "user"
-                ? "font-sans text-base font-semibold tracking-tight leading-snug drop-shadow-sm"
-                : "font-mono text-sm font-medium tracking-wide leading-relaxed text-white italic"
+                ? "max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-gradient-to-br from-blue-600 to-blue-800 text-white rounded-br-none shadow-lg border-2 border-blue-400/50"
+                : message.isError
+                ? "max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-red-100 text-red-800 rounded-bl-none border-2 border-red-300/70 shadow-md"
+                : "max-w-xs md:max-w-md lg:max-w-lg px-4 py-3 rounded-lg bg-transparent text-white rounded-bl-none shadow-md border-2 border-gray-200/80"
             }`}
           >
-            {message.text}
+            <div
+              className={`${
+                message.sender === "user"
+                  ? "font-sans text-base font-semibold tracking-tight leading-snug drop-shadow-sm"
+                  : "font-mono text-sm font-medium tracking-wide leading-relaxed text-white italic"
+              }`}
+            >
+              {message.text}
+            </div>
+          </div>
+        )}
+
+        {/* Render Technical Support Card Below (No Border) */}
+        {message.supportInfo && (
+          <div className="mt-2">
+            <TechnicalSupportCard supportInfo={message.supportInfo} />
           </div>
         )}
       </div>
+
       {message.sender === "user" && (
         <div className="h-8 w-8 rounded-full flex items-center justify-center ml-2 shrink-0 overflow-hidden">
           <img src={boy} alt="User Avatar" className="h-full w-full object-cover" />

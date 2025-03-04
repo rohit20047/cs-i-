@@ -27,7 +27,7 @@ const ChatInterface = () => {
           // showOptions={showOptions}
           isLoading={isLoading}
           messagesEndRef={messagesEndRef}
-          onOptionSelect={handleOptionSelect}
+         
           showTypingIndicator={showTypingIndicator} // Pass this prop
         />
         <ChatInput
